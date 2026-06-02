@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 // @ts-ignore — plain ESM module, no type declarations needed
 import { sanitize } from '../../lib/sanitize.mjs'
 // @ts-ignore — plain ESM module, no type declarations needed
-import { injectNewsGrid, injectDirectoryGrid, injectDocumentsGrid } from '../../lib/grids.mjs'
+import { injectNewsGrid, injectDirectoryGrid, injectDocumentsGrid, injectHomeSearch } from '../../lib/grids.mjs'
 
 const SITE = (process.env.WP_SITE_URL ?? 'https://betterconnected.me').replace(/\/$/, '')
 const USER = process.env.WP_API_USERNAME ?? ''
@@ -14,7 +14,7 @@ const EXCLUDE = new Set([
   // account / auth
   'log-in', 'register', 'register-casual', 'account', 'profile', 'password-reset',
   // restricted / out of scope
-  'directors-directory', 'our-people-forum',
+  'directors-directory', 'our-people-forum', 'wpum_directory',
   // PDR + workflows
   'pdr-review', 'pdr-workflow-inbox', 'pdr-workflow-status', 'pdr-workflow-submit', 'pdr-supporting-information',
   // forms
@@ -76,6 +76,7 @@ export async function GET(
   let html = sanitize(data.html)
   // Native grid rebuilds for JS-driven WP Grid Builder pages.
   const injectors: Record<string, (h: string) => Promise<string>> = {
+    '': injectHomeSearch,
     news: injectNewsGrid,
     'staff-directory': injectDirectoryGrid,
     'main-directory': injectDocumentsGrid,
