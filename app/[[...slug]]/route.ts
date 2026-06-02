@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 // @ts-ignore — plain ESM module, no type declarations needed
 import { sanitize } from '../../lib/sanitize.mjs'
 // @ts-ignore — plain ESM module, no type declarations needed
-import { injectNewsGrid, injectDirectoryGrid, injectDocumentsGrid, injectHomeSearch } from '../../lib/grids.mjs'
+import { injectNewsGrid, injectDirectoryGrid, injectDocumentsGrid, injectHomeSearch, injectMarquee } from '../../lib/grids.mjs'
 // @ts-ignore — plain ESM module, no type declarations needed
 import { injectForms } from '../../lib/forms.mjs'
 
@@ -82,6 +82,8 @@ export async function GET(
   }
 
   let html = sanitize(data.html)
+  // Header announcement marquee (ticker) — present on every page.
+  html = injectMarquee(html)
   // Native Forminator form rebuilds — forms can appear on any page, so run always.
   try {
     html = await injectForms(html, slug)
