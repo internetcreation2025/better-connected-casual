@@ -19,11 +19,11 @@ const EXCLUDE = new Set([
   'directors-directory', 'our-people-forum', 'wpum_directory',
   // PDR + workflows
   'pdr-review', 'pdr-workflow-inbox', 'pdr-workflow-status', 'pdr-workflow-submit', 'pdr-supporting-information',
-  // forms
-  'nominate-a-team', 'nominate-a-colleague', 'quarterly-nomination-form', 'special-recognition-nomination-form',
-  'survery-request-form', 'fslt-newsletter-submission-form', 'employee-recognition',
+  // forms (still out of scope: drafts, duplicates, sensitive/later tiers)
+  'nominate-a-team', 'nominate-a-colleague',
+  'survery-request-form', 'employee-recognition',
   'venue-event-incident-report-form',
-  'portal-feedback-form', 'free-staff-active-card', 'data-protection-info-form-3',
+  'free-staff-active-card', 'data-protection-info-form-3',
   'agreement-to-mediate', 'confidentiality-agreement', 'raffle', 'free-club-membership',
   'friends-family-membership-discount', 'email-toolkit',
 ])
