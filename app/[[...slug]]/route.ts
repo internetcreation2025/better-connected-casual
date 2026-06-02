@@ -28,6 +28,13 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { slug?: string[] } }
 ) {
+  // SAFETY KILL-SWITCH: serve nothing unless explicitly enabled. Set the env var
+  // BCC_PREVIEW_ENABLED=1 only AFTER deployment protection is confirmed to gate this
+  // deployment. Off by default so content is never public by accident.
+  if (process.env.BCC_PREVIEW_ENABLED !== '1') {
+    return new Response('Preview is offline.', { status: 503 })
+  }
+
   const slug = (params.slug ?? []).join('/')
   const first = slug.split('/')[0]
   if (first && EXCLUDE.has(first)) {
