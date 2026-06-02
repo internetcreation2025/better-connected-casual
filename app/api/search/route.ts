@@ -4,6 +4,8 @@ const SITE = (process.env.WP_SITE_URL ?? 'https://betterconnected.me').replace(/
 
 // Same host gate as the page proxy: only serve on protection-gated hosts.
 const SERVE_HOSTS = new Set([
+  // Production domain — safe to serve: middleware.ts password-gates every request.
+  'better-connected-casual.vercel.app',
   'better-connected-casual-git-main-internet-creations-projects.vercel.app',
   'localhost:3000',
   'localhost:3100',

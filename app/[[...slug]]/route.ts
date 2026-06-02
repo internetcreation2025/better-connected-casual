@@ -31,6 +31,9 @@ const EXCLUDE = new Set([
 // (and localhost for dev), and 503 everywhere else. The public production domain
 // (better-connected-casual.vercel.app) therefore never serves staff content.
 const SERVE_HOSTS = new Set([
+  // Production domain — now safe to serve because middleware.ts password-gates every
+  // request on every host (fails closed if the password env vars are unset).
+  'better-connected-casual.vercel.app',
   'better-connected-casual-git-main-internet-creations-projects.vercel.app',
   'localhost:3000',
   'localhost:3100',
