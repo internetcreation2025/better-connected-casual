@@ -24,14 +24,23 @@ const EXCLUDE = new Set([
   'friends-family-membership-discount', 'become-a-wellbeing-champion', 'email-toolkit',
 ])
 
+// Hosts allowed to serve content. Vercel "Standard Protection" gates every URL EXCEPT
+// the public production domain — so we serve ONLY on the auth-protected git-branch alias
+// (and localhost for dev), and 503 everywhere else. The public production domain
+// (better-connected-casual.vercel.app) therefore never serves staff content.
+const SERVE_HOSTS = new Set([
+  'better-connected-casual-git-main-internet-creations-projects.vercel.app',
+  'localhost:3000',
+  'localhost:3100',
+])
+
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { slug?: string[] } }
 ) {
-  // SAFETY KILL-SWITCH: serve nothing unless explicitly enabled. Set the env var
-  // BCC_PREVIEW_ENABLED=1 only AFTER deployment protection is confirmed to gate this
-  // deployment. Off by default so content is never public by accident.
-  if (process.env.BCC_PREVIEW_ENABLED !== '1') {
+  // SAFETY: only serve when explicitly enabled AND on a protection-gated host.
+  const host = req.headers.get('host') || ''
+  if (process.env.BCC_PREVIEW_ENABLED !== '1' || !SERVE_HOSTS.has(host)) {
     return new Response('Preview is offline.', { status: 503 })
   }
 
