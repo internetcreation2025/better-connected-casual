@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
 // @ts-ignore — plain ESM module, no type declarations needed
 import { sanitize } from '../../lib/sanitize.mjs'
+// @ts-ignore — plain ESM module, no type declarations needed
+import { injectNewsGrid } from '../../lib/grids.mjs'
 
 const SITE = (process.env.WP_SITE_URL ?? 'https://betterconnected.me').replace(/\/$/, '')
 const USER = process.env.WP_API_USERNAME ?? ''
@@ -71,7 +73,15 @@ export async function GET(
     return new Response('Not found', { status: 404 })
   }
 
-  const html = sanitize(data.html)
+  let html = sanitize(data.html)
+  // Native grid rebuilds for JS-driven WP Grid Builder pages.
+  if (slug === 'news') {
+    try {
+      html = await injectNewsGrid(html)
+    } catch (e) {
+      console.log('news grid injection failed:', (e as Error).message)
+    }
+  }
   return new Response(html, {
     headers: {
       'content-type': 'text/html; charset=utf-8',
