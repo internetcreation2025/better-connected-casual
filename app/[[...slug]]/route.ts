@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 // @ts-ignore — plain ESM module, no type declarations needed
 import { sanitize } from '../../lib/sanitize.mjs'
 // @ts-ignore — plain ESM module, no type declarations needed
-import { injectNewsGrid } from '../../lib/grids.mjs'
+import { injectNewsGrid, injectDirectoryGrid, injectDocumentsGrid } from '../../lib/grids.mjs'
 
 const SITE = (process.env.WP_SITE_URL ?? 'https://betterconnected.me').replace(/\/$/, '')
 const USER = process.env.WP_API_USERNAME ?? ''
@@ -75,11 +75,16 @@ export async function GET(
 
   let html = sanitize(data.html)
   // Native grid rebuilds for JS-driven WP Grid Builder pages.
-  if (slug === 'news') {
+  const injectors: Record<string, (h: string) => Promise<string>> = {
+    news: injectNewsGrid,
+    'staff-directory': injectDirectoryGrid,
+    'main-directory': injectDocumentsGrid,
+  }
+  if (injectors[slug]) {
     try {
-      html = await injectNewsGrid(html)
+      html = await injectors[slug](html)
     } catch (e) {
-      console.log('news grid injection failed:', (e as Error).message)
+      console.log(`grid injection failed for ${slug}:`, (e as Error).message)
     }
   }
   return new Response(html, {
