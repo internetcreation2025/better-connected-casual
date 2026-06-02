@@ -84,7 +84,7 @@ export async function GET(
   let html = sanitize(data.html)
   // Native Forminator form rebuilds — forms can appear on any page, so run always.
   try {
-    html = await injectForms(html)
+    html = await injectForms(html, slug)
   } catch (e) {
     console.log(`form injection failed for ${slug}:`, (e as Error).message)
   }
