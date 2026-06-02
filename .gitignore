@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+build
+
+# env / secrets — never commit
+.env
+.env*.local
+
+.DS_Store
+*.log
+.vercel
+next-env.d.ts
