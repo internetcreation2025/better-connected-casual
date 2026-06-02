@@ -1,18 +1,21 @@
 <?php
 /**
- * BCC forms bridge.
+ * BCC forms bridge  (v2)
  *
- * Two read/relay endpoints so the public mirror can show Forminator forms and
- * submit them back into THIS site's Forminator (entries + email notifications),
- * exactly like an on-site submission:
+ * Lets the public mirror show Forminator forms and submit them back into THIS
+ * site's Forminator (entries + email notifications), exactly like an on-site
+ * submission:
  *
  *   GET  /wp-json/bcc/v1/form/{id}   -> the form's field schema (to render natively)
  *   POST /wp-json/bcc/v1/form-submit -> run a submission through Forminator's engine
  *
  * Both require an authenticated request (the mirror uses the existing application
  * password, server-side only). The submit endpoint mints Forminator's security
- * token in the SAME request it verifies it, so the token always matches — this is
- * why admin-ajax (which ignores application passwords) could not be used directly.
+ * token in the SAME request it verifies it, so the token always matches.
+ *
+ * TEST MODE: send ?bcc_test=1 (or a bcc_test=1 field). The bridge BLOCKS the email
+ * and DELETES the exact entry it created, then reports bcc_test_mode + which entry
+ * ids it removed — so submissions can be validated without emailing real staff.
  *
  * Install: wp-content/mu-plugins/bcc-forms.php
  */
@@ -88,6 +91,12 @@ function bcc_form_schema($req) {
         if ($type === 'textarea') {
             $field['rows'] = isset($a['textarea-rows']) ? (int) $a['textarea-rows'] : 4;
         }
+        if ($type === 'upload') {
+            $ftype = isset($a['file-type']) ? $a['file-type'] : (isset($a['upload-type']) ? $a['upload-type'] : 'single');
+            $field['multiple']   = ($ftype === 'multiple');
+            $field['filesize']   = isset($a['upload-limit']) ? $a['upload-limit'] : (isset($a['filesize']) ? $a['filesize'] : '');
+            $field['extensions'] = isset($a['upload-extensions']) ? $a['upload-extensions'] : (isset($a['extensions']) ? $a['extensions'] : '');
+        }
         if ($type === 'html') {
             $field['html'] = isset($a['variations']) ? $a['variations'] : (isset($a['markup']) ? $a['markup'] : '');
         }
@@ -117,7 +126,10 @@ function bcc_form_submit($req) {
     $form_id = absint(isset($_POST['form_id']) ? $_POST['form_id'] : $req->get_param('form_id'));
     if (!$form_id) return new WP_REST_Response(array('success' => false, 'data' => 'Missing form_id'), 400);
 
-    $test = (isset($_POST['bcc_test']) ? $_POST['bcc_test'] : $req->get_param('bcc_test')) === '1';
+    // Test detection from EVERY possible source (query is the most reliable).
+    $test = ($req->get_param('bcc_test') === '1')
+        || (isset($_GET['bcc_test'])  && $_GET['bcc_test']  === '1')
+        || (isset($_POST['bcc_test']) && $_POST['bcc_test'] === '1');
 
     // Submission envelope Forminator expects.
     $_POST['action']  = 'forminator_submit_form_custom-forms';
@@ -130,8 +142,13 @@ function bcc_form_submit($req) {
     $_REQUEST = array_merge((array) $_REQUEST, $_POST);
 
     if ($test) {
-        add_filter('pre_wp_mail', '__return_true', 10, 2); // block real emails during a test
+        add_filter('pre_wp_mail', '__return_true', 999, 2); // hard-block real emails
     }
+
+    // Record the highest entry id BEFORE, so we can delete exactly what we create.
+    global $wpdb;
+    $entry_table = $wpdb->prefix . 'frmt_form_entry';
+    $before_max  = (int) $wpdb->get_var($wpdb->prepare("SELECT MAX(entry_id) FROM $entry_table WHERE form_id=%d", $form_id));
 
     // Find Forminator's submit handler instance.
     global $wp_filter;
@@ -166,16 +183,20 @@ function bcc_form_submit($req) {
         $json = array('success' => false, 'data' => 'Unexpected response', 'raw' => substr((string) $out, 0, 400));
     }
 
-    // Test mode: remove the entry we just created so nothing is left behind.
-    if ($test && !empty($json['success'])) {
-        global $wpdb;
-        $t = $wpdb->prefix . 'frmt_form_entry';
-        $nid = (int) $wpdb->get_var($wpdb->prepare("SELECT MAX(entry_id) FROM $t WHERE form_id=%d", $form_id));
-        if ($nid) {
-            Forminator_API::delete_entry($form_id, $nid);
-            $json['bcc_test_deleted_entry'] = $nid;
+    // Test mode: remove exactly the entries created in THIS request; report what happened.
+    if ($test) {
+        $new_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT entry_id FROM $entry_table WHERE form_id=%d AND entry_id > %d",
+            $form_id, $before_max
+        ));
+        $deleted = array();
+        foreach ($new_ids as $eid) {
+            Forminator_API::delete_entry($form_id, (int) $eid);
+            $deleted[] = (int) $eid;
         }
+        $json['bcc_test_deleted_entries'] = $deleted;
     }
+    $json['bcc_test_mode'] = $test;
 
     return new WP_REST_Response($json, 200);
 }

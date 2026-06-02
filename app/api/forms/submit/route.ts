@@ -25,10 +25,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const incoming = await req.formData()
+    const isTest = incoming.get('bcc_test') === '1'
     const fd = new FormData()
     for (const [k, v] of incoming.entries()) fd.append(k, v as string | Blob)
 
-    const r = await fetch(`${SITE}/wp-json/bcc/v1/form-submit`, {
+    // Pass the test flag in the URL too (query params survive every layer reliably).
+    const url = `${SITE}/wp-json/bcc/v1/form-submit` + (isTest ? '?bcc_test=1' : '')
+    const r = await fetch(url, {
       method: 'POST',
       headers: { Authorization: AUTH },
       body: fd,
