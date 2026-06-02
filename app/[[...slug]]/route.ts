@@ -21,11 +21,11 @@ const EXCLUDE = new Set([
   'pdr-review', 'pdr-workflow-inbox', 'pdr-workflow-status', 'pdr-workflow-submit', 'pdr-supporting-information',
   // forms
   'nominate-a-team', 'nominate-a-colleague', 'quarterly-nomination-form', 'special-recognition-nomination-form',
-  'survey-request-form', 'survery-request-form', 'fslt-newsletter-submission-form', 'employee-recognition',
-  'venue-event-incident-report-form', 'safety-pulse-questions-suggestions',
-  'portal-feedback-form', 'mad-ideas-submission-form', 'free-staff-active-card', 'data-protection-info-form-3',
+  'survery-request-form', 'fslt-newsletter-submission-form', 'employee-recognition',
+  'venue-event-incident-report-form',
+  'portal-feedback-form', 'free-staff-active-card', 'data-protection-info-form-3',
   'agreement-to-mediate', 'confidentiality-agreement', 'raffle', 'free-club-membership',
-  'friends-family-membership-discount', 'become-a-wellbeing-champion', 'email-toolkit',
+  'friends-family-membership-discount', 'email-toolkit',
 ])
 
 // Hosts allowed to serve content. Vercel "Standard Protection" gates every URL EXCEPT
