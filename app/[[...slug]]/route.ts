@@ -60,7 +60,8 @@ export async function GET(
   try {
     const res = await fetch(renderUrl, {
       headers: { Authorization: AUTH },
-      next: { revalidate: 300 }, // live-sync with a 5-min cache
+      // 5-min self-healing cache; tagged so the WP webhook can purge it instantly.
+      next: { revalidate: 300, tags: ['bcc'] },
     })
     if (!res.ok) return new Response('Upstream error', { status: 502 })
     data = await res.json()
@@ -91,8 +92,10 @@ export async function GET(
   return new Response(html, {
     headers: {
       'content-type': 'text/html; charset=utf-8',
-      // CDN caches for 5 min, serves stale while revalidating
-      'cache-control': 'public, s-maxage=300, stale-while-revalidate=600',
+      // No CDN HTML caching: speed comes from the tagged WP data cache above, which the
+      // /api/revalidate webhook can purge on demand for instant live-sync. (A manual
+      // CDN s-maxage here couldn't be purged by tag, so edits would lag up to its TTL.)
+      'cache-control': 'no-store',
     },
   })
 }
