@@ -3,6 +3,8 @@ import { NextRequest } from 'next/server'
 import { sanitize } from '../../lib/sanitize.mjs'
 // @ts-ignore — plain ESM module, no type declarations needed
 import { injectNewsGrid, injectDirectoryGrid, injectDocumentsGrid, injectHomeSearch } from '../../lib/grids.mjs'
+// @ts-ignore — plain ESM module, no type declarations needed
+import { injectForms } from '../../lib/forms.mjs'
 
 const SITE = (process.env.WP_SITE_URL ?? 'https://betterconnected.me').replace(/\/$/, '')
 const USER = process.env.WP_API_USERNAME ?? ''
@@ -20,7 +22,7 @@ const EXCLUDE = new Set([
   // forms
   'nominate-a-team', 'nominate-a-colleague', 'quarterly-nomination-form', 'special-recognition-nomination-form',
   'survey-request-form', 'survery-request-form', 'fslt-newsletter-submission-form', 'employee-recognition',
-  'venue-event-incident-report-form', 'safety-pulse-questions-suggestions', 'myzone-request-form',
+  'venue-event-incident-report-form', 'safety-pulse-questions-suggestions',
   'portal-feedback-form', 'mad-ideas-submission-form', 'free-staff-active-card', 'data-protection-info-form-3',
   'agreement-to-mediate', 'confidentiality-agreement', 'raffle', 'free-club-membership',
   'friends-family-membership-discount', 'become-a-wellbeing-champion', 'email-toolkit',
@@ -80,6 +82,12 @@ export async function GET(
   }
 
   let html = sanitize(data.html)
+  // Native Forminator form rebuilds — forms can appear on any page, so run always.
+  try {
+    html = await injectForms(html)
+  } catch (e) {
+    console.log(`form injection failed for ${slug}:`, (e as Error).message)
+  }
   // Native grid rebuilds for JS-driven WP Grid Builder pages.
   const injectors: Record<string, (h: string) => Promise<string>> = {
     '': injectHomeSearch,
