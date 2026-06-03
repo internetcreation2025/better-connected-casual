@@ -23,9 +23,11 @@ const EXCLUDE = new Set([
   'nominate-a-team', 'nominate-a-colleague',
   'survery-request-form', 'employee-recognition',
   'venue-event-incident-report-form',
-  'free-staff-active-card', 'data-protection-info-form-3',
+  'data-protection-info-form-3',
   'agreement-to-mediate', 'confidentiality-agreement', 'raffle', 'free-club-membership',
-  'friends-family-membership-discount', 'email-toolkit',
+  'email-toolkit',
+  // NOTE: 'free-staff-active-card' + 'friends-family-membership-discount' were here but
+  // are now served — their e-signature forms (36386, 36425) are built & enabled.
 ])
 
 // Hosts allowed to serve content. Vercel "Standard Protection" gates every URL EXCEPT
