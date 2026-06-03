@@ -46,13 +46,19 @@ Local: `.env.local`. Production: set in the Vercel project's **Settings → Envi
 - `BCC_REVALIDATE_SECRET` — shared secret for the live-sync webhook
 
 ## WordPress side (already installed; source in `wordpress/`)
-Small helpers the mirror calls. **render/data/bridge** live in `wp-content/novamira-sandbox/`
-or `wp-content/mu-plugins/`; the pinger is an mu-plugin. They're already on the live site.
+Small helpers the mirror calls. **render/data/bridge** all live in `wp-content/novamira-sandbox/`
+(written via the Novamira MCP, which only permits PHP in the sandbox); the pinger is an mu-plugin.
+They're already on the live site.
 - `bcc-render.php` — returns a page rendered as a *casual* user (sandbox; admin-gated; one-time nonce).
 - `bcc-data.php` — read-only `/bcc/v1/directory` (WP users) + `/bcc/v1/documents` (main-directory).
 - `bcc-bridge.php` — `/bcc/v1/form/{id}` (form schema) + `/bcc/v1/form-submit` (runs Forminator's engine;
-  hardened test mode; captcha bypass for the internal tool). **NOTE: filename is `bcc-bridge.php`,
-  NOT `bcc-forms.php`** — renamed to dodge a stale server OPcache (see Gotchas).
+  hardened test mode; captcha bypass for the internal tool). Lives in `wp-content/novamira-sandbox/`
+  (NOT mu-plugins — the old `mu-plugins/bcc-forms.php` was removed; the MCP can only write PHP to the
+  sandbox, and a fresh path also dodges the stale-OPcache gotcha). v3 fixes (2026-06-03):
+  (1) captcha bypass now matches **all** providers' `siteverify` URLs incl. Cloudflare **Turnstile**
+  (which form 53 uses); (2) forces `wp_doing_ajax` so Forminator's `wp_send_json_success()` routes
+  through `wp_die()` (capturable) instead of bare `die()` under REST — without this, test-mode
+  cleanup never ran and the raw JSON leaked.
 - `bcc-revalidate.php` — mu-plugin that pings `/api/revalidate` on save for instant live-sync
   (paste the real `BCC_REVALIDATE_SECRET` into it).
 
@@ -65,7 +71,10 @@ or `wp-content/mu-plugins/`; the pinger is an mu-plugin. They're already on the 
 - `lib/grids.mjs` — native rebuilds: News / Staff directory / Document library grids + filters,
   home instant-search, header marquee, Splide/Kadence carousel → CSS scroller.
 - `lib/forms.mjs` — native Forminator form rebuild from schema; `injectForms`. `ENABLED_FORMS` set
-  controls which forms are live. Submits via `/api/forms/submit` → `bcc-bridge.php`.
+  controls which forms are live. Renders text/select/checkbox/upload (single + multi) /e-signature
+  fields. Submits via `/api/forms/submit` → bridge; multi-file fields stage via `/api/forms/upload`.
+- `app/api/forms/upload/route.ts` — same-origin proxy that relays one file to the bridge's
+  `/bcc/v1/form-upload` (staged multi-file uploads).
 - `middleware.ts` + `app/login/route.ts` + `app/api/login/route.ts` — staff password gate (cookie).
 - `app/api/revalidate/route.ts` — live-sync webhook (purges the `bcc` cache tag).
 - `app/api/search/route.ts` — same-origin search proxy.
@@ -73,11 +82,16 @@ or `wp-content/mu-plugins/`; the pinger is an mu-plugin. They're already on the 
 ## Current status
 - ✅ Display: faithful Oxygen pages, emails revealed, A–Z directory filter, marquee, carousels.
 - ✅ Auth gate, live-sync, `noindex`, served on `casual.betterconnected.me`.
-- ✅ Forms (11/13): 5 simple text + 5 upload (text + single-file). Contact form built; see TODO.
-- ⏳ Contact form: needs the bridge running as `bcc-bridge.php` (captcha bypass) — verify it submits.
-- ⏳ **Multi-file attachments** (portal-feedback, campaign, quarterly-nom, special-recognition, newsletter)
-  and **e-signature** (friends-&-family, active-staff-card): both need Forminator's *staged-upload*
-  flow replicated in the bridge — one shared build, not yet done.
+- ✅ Forms (13/13): simple text, single + multi-file upload, captcha (contact), and e-signature.
+- ✅ Contact form (id 53): submits through the bridge — Turnstile captcha bypass + REST `wp_die`
+  capture fixed and verified in test mode (entry created, email blocked, entry auto-deleted) 2026-06-03.
+- ✅ **Multi-file attachments** (portal-feedback 3888, quarterly-nom 37894, special-recognition 37896,
+  newsletter 36355): each file is staged to `/bcc/v1/form-upload` (→ Forminator temp dir) as it's
+  chosen, then the temp refs are submitted as the `forminator-multifile-hidden` JSON field (keys
+  carry a `_<uid>` suffix that Forminator strips). Verified in test mode 2026-06-03.
+- ✅ **E-signature** (friends-&-family 36425, active-staff-card 36386): hand-rolled canvas pad submits
+  `field-{id}`=uniq + `ctlSignature{uniq}_data_canvas`=PNG data-URL; Forminator saves it. No bridge
+  change. Verified in test mode 2026-06-03.
 
 ## Gotchas (learned the hard way)
 - **OPcache:** the host serves a stale *compiled* copy of mu-plugins to public requests, and
