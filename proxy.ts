@@ -4,13 +4,17 @@ import { NextRequest, NextResponse } from 'next/server'
 // Vercel production URL), so staff reach the site with one shared password and no
 // paid plan. Fails CLOSED: if BCC_ACCESS_TOKEN is unset, nothing is served.
 //
+// Next 16 renamed Middleware to Proxy, so this file is `proxy.ts` and the export
+// is `proxy`. Same file position, same matcher, same behaviour — the rename is
+// the ONLY change here; the fail-closed logic below is untouched.
+//
 // Exempt paths: the login screen, the login API, and the /api/revalidate webhook
 // (that one is already secret-gated and must stay reachable by WordPress).
 const EXEMPT = ['/login', '/api/login', '/api/revalidate']
 
 const COOKIE = 'bcc_auth'
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Never gate Next internals or static asset files (CSS/images/fonts).

@@ -47,7 +47,9 @@ const SERVE_HOSTS = new Set([
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { slug?: string[] } }
+  // Next 15 made route params a Promise — they are resolved per request rather
+  // than handed over up front. Hence the `await` below.
+  { params }: { params: Promise<{ slug?: string[] }> }
 ) {
   // SAFETY: only serve when explicitly enabled AND on a protection-gated host.
   const host = req.headers.get('host') || ''
@@ -55,7 +57,8 @@ export async function GET(
     return new Response('Preview is offline.', { status: 503 })
   }
 
-  const slug = (params.slug ?? []).join('/')
+  const { slug: slugParts } = await params
+  const slug = (slugParts ?? []).join('/')
   const first = slug.split('/')[0]
   if (first && EXCLUDE.has(first)) {
     return new Response('Not found', { status: 404 })

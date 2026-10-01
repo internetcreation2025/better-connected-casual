@@ -11,3 +11,6 @@ build
 *.log
 .vercel
 next-env.d.ts
+
+# Next 16 writes this incremental-build cache to the repo root.
+tsconfig.tsbuildinfo
