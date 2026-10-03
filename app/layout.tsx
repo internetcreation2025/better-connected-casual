@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Poppins } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const poppins = Poppins({
@@ -28,7 +29,10 @@ export default function RootLayout({
         <link rel="stylesheet" href="/oxygen-css/universal.css" />
         <link rel="stylesheet" href="/oxygen-css/158.css" />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        {children}
+        <Analytics />
+      </body>
     </html>
   )
 }
